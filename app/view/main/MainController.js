@@ -127,47 +127,49 @@ Ext.define('Hamsket.view.main.MainController', {
 		});
 	}
 
-	,removeService(serviceId, resolve) {
+	,removeService(serviceId) {
 		const me = this;
-		if ( !serviceId ) return false;
+		return new Promise((resolve, reject) => {
+			if ( !serviceId ) reject();
 
-		// Get Record
-		const rec = Ext.getStore('Services').getById(serviceId);
+			// Get Record
+			const rec = Ext.getStore('Services').getById(serviceId);
 
-		if ( !rec.get('enabled') ) {
-			rec.set('enabled', true);
-			me.onEnableDisableService(null, Ext.getStore('Services').indexOf(rec), true, null, true);
-			const tab = Ext.getCmp('tab_'+serviceId);
-			const webview = tab.getWebView();
+			if ( !rec.get('enabled') ) {
+				rec.set('enabled', true);
+				me.onEnableDisableService(null, Ext.getStore('Services').indexOf(rec), true, null, true);
+				const tab = Ext.getCmp('tab_'+serviceId);
+				const webview = tab.getWebView();
 
-			webview.addEventListener("did-start-loading", function() {
+				webview.addEventListener("did-start-loading", function() {
+					clearData(webview, tab, resolve);
+				});
+			} else {
+				// Get Tab
+				// Clear all trash data
+				const tab = Ext.getCmp('tab_'+serviceId);
+				const webview = tab.getWebView();
 				clearData(webview, tab, resolve);
-			});
-		} else {
-			// Get Tab
-			// Clear all trash data
-			const tab = Ext.getCmp('tab_'+serviceId);
-			const webview = tab.getWebView();
-			clearData(webview, tab, resolve);
-		}
+			}
 
-		const config = ipc.sendSync('getConfig');
-		if ( config.default_service === rec.get('id') ) ipc.send('setConfig', Ext.apply(config, { default_service: 'hamsketTab' }));
+			const config = ipc.sendSync('getConfig');
+			if ( config.default_service === rec.get('id') ) ipc.send('setConfig', Ext.apply(config, { default_service: 'hamsketTab' }));
 
-		function clearData(webview, tab, resolve) {
-			webview.getWebContents().clearHistory();
-			webview.getWebContents().session.flushStorageData();
-			webview.getWebContents().session.clearCache()
-			.then(webview.getWebContents().session.clearStorageData)
-			.then(webview.getWebContents().session.cookies.flushStore)
-			.then(function() {
-				// Remove record from localStorage
-				Ext.getStore('Services').remove(rec);
-				// Close tab
-				tab.close();
-				if ( Ext.isFunction(resolve) ) resolve();
-			});
-		}
+			function clearData(webview, tab, resolve) {
+				webview.getWebContents().clearHistory();
+				webview.getWebContents().session.flushStorageData();
+				webview.getWebContents().session.clearCache()
+				.then(webview.getWebContents().session.clearStorageData)
+				.then(webview.getWebContents().session.cookies.flushStore)
+				.then(function() {
+					// Remove record from localStorage
+					Ext.getStore('Services').remove(rec);
+					// Close tab
+					tab.close();
+					if ( Ext.isFunction(resolve) ) resolve();
+				});
+			}
+		});
 	}
 
 	,removeServiceHandler( gridView, rowIndex, colIndex, col, e, rec, rowEl ) {
@@ -176,9 +178,8 @@ Ext.define('Hamsket.view.main.MainController', {
 		Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[13]']+' <b>'+rec.get('name')+'</b>?', function(btnId) {
 			if ( btnId === 'yes' ) {
 				Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
-				me.removeService(rec.get('id'), () => {
-					Ext.Msg.hide();
-				});
+				me.removeService(rec.get('id'))
+				.finally(() => { Ext.Msg.hide(); });
 			}
 		});
 	}
@@ -211,9 +212,7 @@ Ext.define('Hamsket.view.main.MainController', {
 				store.suspendEvent('childmove');
 				let promises = [];
 				Ext.Array.each(store.collect('id'), function(serviceId) {
-					promises.push(new Promise(function(resolve) {
-						 me.removeService(serviceId, resolve);
-					}));
+					promises.push(me.removeService(serviceId));
 				});
 				Promise.all(promises)
 				.then(function(resolve) {
