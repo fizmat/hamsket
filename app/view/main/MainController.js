@@ -127,7 +127,7 @@ Ext.define('Hamsket.view.main.MainController', {
 		});
 	}
 
-	,removeService(serviceId, total, actual, resolve) {
+	,removeService(serviceId, resolve) {
 		const me = this;
 		if ( !serviceId ) return false;
 
@@ -166,10 +166,6 @@ Ext.define('Hamsket.view.main.MainController', {
 				// Close tab
 				tab.close();
 				if ( Ext.isFunction(resolve) ) resolve();
-				// Close waiting message
-				if ( total === actual ) {
-					Ext.Msg.hide();
-				}
 			});
 		}
 	}
@@ -180,7 +176,9 @@ Ext.define('Hamsket.view.main.MainController', {
 		Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[13]']+' <b>'+rec.get('name')+'</b>?', function(btnId) {
 			if ( btnId === 'yes' ) {
 				Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
-				me.removeService(rec.get('id'), 1, 1);
+				me.removeService(rec.get('id'), () => {
+					Ext.Msg.hide();
+				});
 			}
 		});
 	}
@@ -211,12 +209,10 @@ Ext.define('Hamsket.view.main.MainController', {
 			store.load(function(records, operation, success) {
 				store.suspendEvent('remove');
 				store.suspendEvent('childmove');
-				const count = store.getCount();
-				let i = 1;
 				let promises = [];
 				Ext.Array.each(store.collect('id'), function(serviceId) {
 					promises.push(new Promise(function(resolve) {
-						 me.removeService(serviceId, count, i++, resolve);
+						 me.removeService(serviceId, resolve);
 					}));
 				});
 				Promise.all(promises)
@@ -229,6 +225,7 @@ Ext.define('Hamsket.view.main.MainController', {
 					Ext.Msg.alert('Error!','Error removing services: ' + err);
 				})
 				.finally(function() {
+					Ext.Msg.hide();
 					store.resumeEvent('childmove');
 					store.resumeEvent('remove');
 					document.title = 'Hamsket';
