@@ -188,36 +188,46 @@ Ext.define('Hamsket.view.main.MainController', {
 		this.removeAllServices();
 	}
 
-	,removeAllServices(callback){
+	,removeAllServices() {
 		const me = this;
-		Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[14]'], function(btnId) {
-			if ( btnId === 'yes' ) {
-			 	me.removeAllServicesNoconfirm(callback);
-			}
+		return new Promise((resolve, reject) => {
+			Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[14]'], function(btnId) {
+				if ( btnId === 'yes' ) {
+			 		me.removeAllServicesNoconfirm().then(resolve, reject);
+				}
+				else {
+					resolve(false);
+				}
+			});
 		});
 	}
 
-	,removeAllServicesNoconfirm(callback) {
+	,removeAllServicesNoconfirm() {
 		const me = this;
-		Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
-		// Clear counter for unread messaging
-		document.title = 'Hamsket';
-		const store = Ext.getStore('Services');
+		return new Promise((resolve, reject) => {
+			Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
+			// Clear counter for unread messaging
+			document.title = 'Hamsket';
+			const store = Ext.getStore('Services');
 
-		store.load(function(records, operation, success) {
-			store.suspendEvent('remove');
-			store.suspendEvent('childmove');
-			Promise.all(Ext.Array.map(store.collect('id'), me.removeService))
-			.then(() => { if ( callback ) { callback(); }	})
-			.catch(function(err) {
-				console.error('Error removing services: ' + err);
-				Ext.Msg.alert('Error!','Error removing services: ' + err);
-			})
-			.finally(function() {
-				Ext.Msg.hide();
-				store.resumeEvent('childmove');
-				store.resumeEvent('remove');
-				document.title = 'Hamsket';
+			store.load(function(records, operation, success) {
+				store.suspendEvent('remove');
+				store.suspendEvent('childmove');
+				Promise.all(Ext.Array.map(store.collect('id'), me.removeService))
+				.finally(function() {
+					Ext.Msg.hide();
+					store.resumeEvent('childmove');
+					store.resumeEvent('remove');
+					document.title = 'Hamsket';
+				})
+				.then(
+					function(results) { resolve(true); },
+					function(err) {
+						console.error('Error removing services: ' + err);
+						Ext.Msg.alert('Error!','Error removing services: ' + err);
+						resolve(false);
+					}
+				);
 			});
 		});
 	}
