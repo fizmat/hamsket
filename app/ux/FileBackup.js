@@ -49,7 +49,7 @@ Ext.define('Hamsket.ux.FileBackup', {
 					}
 					const services = JSON.parse(data);
 					if (services) {
-						Ext.cq1('app-main').getController().removeAllServices(true, function() {
+						Ext.cq1('app-main').getController().removeAllServices(function() {
 							Ext.each(services, function(s) {
 								const service = Ext.create('Hamsket.model.Service', s);
 								service.save();

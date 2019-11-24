@@ -185,45 +185,41 @@ Ext.define('Hamsket.view.main.MainController', {
 	}
 
 	,removeAllServicesHandler(btn, event) {
-		this.removeAllServices(true);
+		this.removeAllServices();
 	}
 
-	,removeAllServices(doConfirm, callback){
+	,removeAllServices(callback){
 		const me = this;
+		Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[14]'], function(btnId) {
+			if ( btnId === 'yes' ) {
+			 	me.removeAllServicesNoconfirm(callback);
+			}
+		});
+	}
 
+	,removeAllServicesNoconfirm(callback) {
+		const me = this;
+		Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
 		// Clear counter for unread messaging
 		document.title = 'Hamsket';
-
 		const store = Ext.getStore('Services');
 
-		if ( doConfirm ) {
-			Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[14]'], function(btnId) {
-				if ( btnId === 'yes' ) {
-					Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
-					_removeAllServices(callback);
-				}
+		store.load(function(records, operation, success) {
+			store.suspendEvent('remove');
+			store.suspendEvent('childmove');
+			Promise.all(Ext.Array.map(store.collect('id'), me.removeService))
+			.then(() => { if ( callback ) { callback(); }	})
+			.catch(function(err) {
+				console.error('Error removing services: ' + err);
+				Ext.Msg.alert('Error!','Error removing services: ' + err);
+			})
+			.finally(function() {
+				Ext.Msg.hide();
+				store.resumeEvent('childmove');
+				store.resumeEvent('remove');
+				document.title = 'Hamsket';
 			});
-		} else {
-			_removeAllServices(callback);
-		}
-		function _removeAllServices (callback) {
-			store.load(function(records, operation, success) {
-				store.suspendEvent('remove');
-				store.suspendEvent('childmove');
-				Promise.all(Ext.Array.map(store.collect('id'), me.removeService))
-				.then(() => { if ( callback ) { callback(); }	})
-				.catch(function(err) {
-					console.error('Error removing services: ' + err);
-					Ext.Msg.alert('Error!','Error removing services: ' + err);
-				})
-				.finally(function() {
-					Ext.Msg.hide();
-					store.resumeEvent('childmove');
-					store.resumeEvent('remove');
-					document.title = 'Hamsket';
-				});
-			});
-		}
+		});
 	}
 
 	,configureService( gridView, rowIndex, colIndex, col, e, rec, rowEl ) {
