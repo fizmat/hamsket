@@ -127,7 +127,7 @@ Ext.define('Hamsket.view.main.MainController', {
 		});
 	}
 
-	,removeServiceFn(serviceId, total, actual, resolve) {
+	,removeService(serviceId, total, actual, resolve) {
 		const me = this;
 		if ( !serviceId ) return false;
 
@@ -174,18 +174,22 @@ Ext.define('Hamsket.view.main.MainController', {
 		}
 	}
 
-	,removeService( gridView, rowIndex, colIndex, col, e, rec, rowEl ) {
+	,removeServiceHandler( gridView, rowIndex, colIndex, col, e, rec, rowEl ) {
 		const me = this;
 
 		Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[13]']+' <b>'+rec.get('name')+'</b>?', function(btnId) {
 			if ( btnId === 'yes' ) {
 				Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
-				me.removeServiceFn(rec.get('id'), 1, 1);
+				me.removeService(rec.get('id'), 1, 1);
 			}
 		});
 	}
 
-	,removeAllServices(btn, callback) {
+	,removeAllServicesHandler(btn, event) {
+		this.removeAllServices(true);
+	}
+
+	,removeAllServices(doConfirm, callback){
 		const me = this;
 
 		// Clear counter for unread messaging
@@ -193,7 +197,7 @@ Ext.define('Hamsket.view.main.MainController', {
 
 		const store = Ext.getStore('Services');
 
-		if ( btn ) {
+		if ( doConfirm ) {
 			Ext.Msg.confirm(locale['app.window[12]'], locale['app.window[14]'], function(btnId) {
 				if ( btnId === 'yes' ) {
 					Ext.Msg.wait('Please wait until we clear all.', 'Removing...');
@@ -212,12 +216,12 @@ Ext.define('Hamsket.view.main.MainController', {
 				let promises = [];
 				Ext.Array.each(store.collect('id'), function(serviceId) {
 					promises.push(new Promise(function(resolve) {
-						 me.removeServiceFn(serviceId, count, i++, resolve);
+						 me.removeService(serviceId, count, i++, resolve);
 					}));
 				});
 				Promise.all(promises)
 				.then(function(resolve) {
-					if ( Ext.isFunction(callback) ) callback();
+					if ( callback ) { callback(); }
 					return resolve;
 				})
 				.catch(function(err) {

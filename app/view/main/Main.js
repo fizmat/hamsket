@@ -145,7 +145,7 @@ Ext.define('Hamsket.view.main.Main', {
 							,glyph: 'XF1F8@FontAwesome'
 							,baseCls: ''
 							,tooltip: locale['app.main[10]']
-							,handler: 'removeAllServices'
+							,handler: 'removeAllServicesHandler'
 						}
 					]
 					,columns: [
@@ -199,7 +199,7 @@ Ext.define('Hamsket.view.main.Main', {
 								,{
 									 glyph: 0xF1F8
 									,tooltip: locale['app.main[14]']
-									,handler: 'removeService'
+									,handler: 'removeServiceHandler'
 									,getClass(){ return 'x-hidden-display'; }
 								}
 							]
