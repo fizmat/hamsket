@@ -210,15 +210,8 @@ Ext.define('Hamsket.view.main.MainController', {
 			store.load(function(records, operation, success) {
 				store.suspendEvent('remove');
 				store.suspendEvent('childmove');
-				let promises = [];
-				Ext.Array.each(store.collect('id'), function(serviceId) {
-					promises.push(me.removeService(serviceId));
-				});
-				Promise.all(promises)
-				.then(function(resolve) {
-					if ( callback ) { callback(); }
-					return resolve;
-				})
+				Promise.all(Ext.Array.map(store.collect('id'), me.removeService))
+				.then(() => { if ( callback ) { callback(); }	})
 				.catch(function(err) {
 					console.error('Error removing services: ' + err);
 					Ext.Msg.alert('Error!','Error removing services: ' + err);
