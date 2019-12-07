@@ -22,7 +22,7 @@ module.exports = function() {
 	beforeEach(function() {
 		self.app = new Application({
 			path: electron,
-			args: [__dirname + '/../../electron/main.js']
+			args: [__dirname + '/../../build/production/Hamsket/']
 		});
 		return self.app.start();
 	});
